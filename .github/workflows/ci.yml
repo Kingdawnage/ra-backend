@@ -11,6 +11,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    env: 
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_MAXAGE: ${{ secrets.JWT_MAXAGE }}
+      
     steps:
       # 1. Check out the repo
       - name: Check out repository
