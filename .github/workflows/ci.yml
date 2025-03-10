@@ -15,7 +15,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_MAXAGE: ${{ secrets.JWT_MAXAGE }}
-      
+
     steps:
       # 1. Check out the repo
       - name: Check out repository
@@ -52,6 +52,10 @@ jobs:
 
       # 4. Lint with Clippy
       - name: Lint with Clippy
+        env: 
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_MAXAGE: ${{ secrets.JWT_MAXAGE }}
         run: cargo clippy --all-features --all-targets -- -D warnings
 
       # 5. Check code formatting
@@ -60,6 +64,10 @@ jobs:
 
       # 6. Build
       - name: Build project
+        env: 
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_MAXAGE: ${{ secrets.JWT_MAXAGE }}
         run: cargo build --all --release
 
       # 7. Run tests
