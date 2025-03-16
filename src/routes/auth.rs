@@ -39,7 +39,7 @@ pub async fn register(
         .await;
 
     match result {
-        Ok(user) => Ok((
+        Ok(_user) => Ok((
             StatusCode::CREATED,
             Json(Response {
                 status: "success",

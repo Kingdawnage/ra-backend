@@ -51,7 +51,7 @@ pub async fn run()
     };
 
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:8080".parse::<HeaderValue>().unwrap())
+        .allow_origin("0.0.0.0:8080".parse::<HeaderValue>().unwrap())
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::PUT]);
@@ -66,9 +66,9 @@ pub async fn run()
         .route("/", get(|| async {Json("Hello, World!")}))
         .layer(cors.clone());
 
-    println!("Server running on http://localhost:{}", config.port);
+    println!("Server running on 0.0.0.0:{}", config.port);
 
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", config.port))
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", config.port))
         .await
         .unwrap();
 

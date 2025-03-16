@@ -1,4 +1,4 @@
-use argon2::{password_hash::{self, rand_core::OsRng, PasswordHasher, SaltString}, Argon2, PasswordHash, PasswordVerifier};
+use argon2::{password_hash::{rand_core::OsRng, PasswordHasher, SaltString}, Argon2, PasswordHash, PasswordVerifier};
 
 use super::error::ErrorMessage;
 

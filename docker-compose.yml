@@ -1,0 +1,12 @@
+services:
+  ra-backend:
+    container_name: ra-backend
+    image: kingdawnage/ra-backend:1.0.0
+    build: .
+    ports:
+      - "8080:8080"
+    # command: ["sleep", "infinity"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_MAXAGE=${JWT_MAXAGE}
