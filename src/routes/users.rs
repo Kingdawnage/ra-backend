@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
-use axum::{extract::Query, middleware::from_fn, response::IntoResponse, routing::{get, put}, Extension, Json, Router};
+use axum::{extract::{Path, Query, Multipart}, middleware::from_fn, response::IntoResponse, routing::{get, post, put}, Extension, Json, Router};
+use bytes::Bytes;
+use tokio::fs;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::{models::users::UserRole, services::{database::UserActions, middleware::{role_check, JWTAuthMiddleware}}, utils::{dtos::{FilterUserDto, RequestQueryDto, Response, RoleUpdateDto, UserData, UserListResponseDto, UserPassUpdateDto, UserResponseDto}, error::{ErrorMessage, HttpError}, password}, AppState};
+use crate::{models::users::UserRole, services::{database::UserActions, middleware::{role_check, JWTAuthMiddleware}}, utils::{dtos::{FilterUserDto, RequestQueryDto, Response, ResumeUploadDto, RoleUpdateDto, UserData, UserListResponseDto, UserPassUpdateDto, UserResponseDto}, error::{ErrorMessage, HttpError}, password}, AppState};
 
 pub fn user_routes() -> Router {
     Router::new()
@@ -24,6 +26,7 @@ pub fn user_routes() -> Router {
         .route("/user/name", put(update_user_name))
         .route("/user/role", put(update_user_role))
         .route("/user/password", put(update_user_password))
+        .route("/{user_id}/resume", post(upload_resume))
 }
 
 pub async fn get_me(
@@ -38,6 +41,84 @@ pub async fn get_me(
     };
 
     Ok(Json(response_data))
+}
+
+pub async fn upload_resume(
+    Extension(app_state): Extension<Arc<AppState>>,
+    Extension(user): Extension<JWTAuthMiddleware>,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, HttpError> {
+    let upload_dir = "./uploads/temp";
+    fs::create_dir_all(upload_dir).await.map_err(|e| HttpError::server_error(e.to_string()))?;
+
+    let user_id = &user.user.id;
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| HttpError::bad_request(e.to_string()))?
+        {
+            let field_name = field.name().map(|s| s.to_string());
+            let file_name = field
+                .file_name()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| Uuid::new_v4().to_string());
+
+            let data: Bytes = field
+                .bytes()
+                .await
+                .map_err(|e| HttpError::bad_request(e.to_string()))?;
+
+            let file_path = format!("{}/{}", upload_dir, file_name);
+            fs::write(&file_path, &data).await.map_err(|e| HttpError::server_error(e.to_string()))?;
+
+            println!(
+                "User {} uploaded file from field {:?} with filename {}, saved at {}",
+                user_id,
+                field_name,
+                file_name,
+                file_path
+            );
+
+            let _result = app_state
+                .db_client
+                .save_resume(*user_id, &file_path, None)
+                .await
+                .map_err(|e| HttpError::server_error(e.to_string()))?;
+        }
+
+        Ok(Json(Response {
+            message: "Resume uploaded successfully".to_string(),
+            status: "success",
+        }))
+}
+
+pub async fn post_resume(
+    Path(user_id): Path<Uuid>,
+    Extension(app_state): Extension<Arc<AppState>>,
+    Extension(user): Extension<JWTAuthMiddleware>,
+    Json(body): Json<ResumeUploadDto>,
+) -> Result<impl IntoResponse, HttpError> {
+    if user.user.id != user_id {
+        return Err(HttpError::unauthorized(ErrorMessage::InvalidToken.to_string()));
+    }
+
+    body.validate()
+        .map_err(|e| HttpError::bad_request(e.to_string()))?;
+
+    let user = &user.user;
+    let user_id = Uuid::parse_str(&user.id.to_string()).unwrap();
+
+    let _result = app_state
+        .db_client
+        .save_resume(user_id, &body.file_path, body.analysis_result)
+        .await
+        .map_err(|e| HttpError::server_error(e.to_string()))?;
+
+    return Ok(Json(Response {
+        message: "Resume uploaded successfully".to_string(),
+        status: "success",
+    }));
 }
 
 pub async fn get_users(

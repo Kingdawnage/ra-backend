@@ -21,7 +21,7 @@ pub enum ErrorMessage {
     ExceededMaxPassowrdLength(usize),
     HashingError,
     InvalidToken,
-    ServerError,
+    // ServerError,
     WrongCredentials,
     EmailExist,
     UserNotFound,
@@ -45,7 +45,7 @@ impl ErrorMessage {
             }
             ErrorMessage::HashingError => "Error hashing password".to_string(),
             ErrorMessage::InvalidToken => "Invalid token".to_string(),
-            ErrorMessage::ServerError => "Internal server error".to_string(),
+            // ErrorMessage::ServerError => "Internal server error".to_string(),
             ErrorMessage::WrongCredentials => "Wrong credentials".to_string(),
             ErrorMessage::EmailExist => "Email already exist".to_string(),
             ErrorMessage::UserNotFound => "User not found".to_string(),

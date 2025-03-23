@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde_json::Value;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use crate::models::users::{User, UserRole};
+use crate::models::{resume::Resume, users::{User, UserRole}};
 
 #[derive(Debug, Clone)]
 pub struct DBClient {
@@ -61,10 +62,39 @@ pub trait UserActions {
         token: &str,
         expires_at: DateTime<Utc>,
     ) -> Result<(), sqlx::Error>;
+
+    async fn save_resume<T: Into<String> + Send>(
+        &self,
+        user_id: Uuid,
+        file_path: T,
+        analysis_result: Option<serde_json::Value>,
+    ) -> Result<Resume, sqlx::Error>;
 }
 
 #[async_trait]
 impl UserActions for DBClient {
+    async fn save_resume<T: Into<String> + Send>(
+        &self,
+        user_id: Uuid,
+        file_path: T,
+        analysis_result: Option<serde_json::Value>,
+    ) -> Result<Resume, sqlx::Error> {
+        let resume = sqlx::query_as!(
+            Resume,
+            r#"
+            INSERT INTO resumes (user_id, file_path, analysis_result)
+            VALUES ($1, $2, $3::jsonb)
+            RETURNING id, user_id, file_path, analysis_result, uploaded_at
+            "#,
+            user_id,
+            file_path.into(),
+            analysis_result
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(resume)
+    }
+
     async fn get_user(
         &self,
         user_id: Option<Uuid>,

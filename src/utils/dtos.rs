@@ -169,3 +169,10 @@ pub struct ResetPasswordRequestDto {
     )]
     pub new_password_confirm: String,
 }
+
+#[derive(Serialize, Deserialize, Validate, Debug, Clone)]
+pub struct ResumeUploadDto {
+    #[validate(length(min = 1, message = "File path is required"))]
+    pub file_path: String,
+    pub analysis_result: Option<serde_json::Value>, 
+}
