@@ -21,7 +21,8 @@ mod api;
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub env: Config,
-    pub db_client: DBClient
+    pub db_client: DBClient,
+    pub http_client: reqwest::Client,
 }
 
 pub async fn run()
@@ -57,9 +58,11 @@ pub async fn run()
         .allow_methods([Method::GET, Method::POST, Method::PUT]);
 
     let db_client = DBClient::new(pool);
+    let http_client = reqwest::Client::new();
     let app_state = AppState {
         env: config.clone(),
-        db_client
+        db_client,
+        http_client,
     };
 
     let app = create_api(Arc::new(app_state.clone()))

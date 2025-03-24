@@ -6,7 +6,7 @@ use tokio::fs;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::{models::users::UserRole, services::{database::UserActions, middleware::{role_check, JWTAuthMiddleware}}, utils::{dtos::{FilterUserDto, RequestQueryDto, Response, ResumeUploadDto, RoleUpdateDto, UserData, UserListResponseDto, UserPassUpdateDto, UserResponseDto}, error::{ErrorMessage, HttpError}, password}, AppState};
+use crate::{models::users::UserRole, services::{database::UserActions, middleware::{role_check, JWTAuthMiddleware}, nlp::call_nlp_service}, utils::{dtos::{FilterUserDto, RequestQueryDto, Response, ResumeUploadDto, RoleUpdateDto, UserData, UserListResponseDto, UserPassUpdateDto, UserResponseDto}, error::{ErrorMessage, HttpError}, password}, AppState};
 
 pub fn user_routes() -> Router {
     Router::new()
@@ -44,14 +44,19 @@ pub async fn get_me(
 }
 
 pub async fn upload_resume(
+    Path(user_id): Path<Uuid>,
     Extension(app_state): Extension<Arc<AppState>>,
     Extension(user): Extension<JWTAuthMiddleware>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, HttpError> {
+    if user.user.id != user_id {
+        return Err(HttpError::unauthorized(ErrorMessage::InvalidToken.to_string()));
+    }
     let upload_dir = "./uploads/temp";
     fs::create_dir_all(upload_dir).await.map_err(|e| HttpError::server_error(e.to_string()))?;
 
     let user_id = &user.user.id;
+    let mut analysis_result = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -80,9 +85,19 @@ pub async fn upload_resume(
                 file_path
             );
 
+            match call_nlp_service(&app_state.http_client, &file_path, &file_name).await{
+                Ok(result) => {
+                    analysis_result = Some(result);
+                    println!("Recieved analysis result: {:?}", analysis_result);
+                }
+                Err(e) => {
+                    println!("Error calling NLP service: {:?}", e);
+                }
+            }
+
             let _result = app_state
                 .db_client
-                .save_resume(*user_id, &file_path, None)
+                .save_resume(*user_id, &file_path, analysis_result.clone())
                 .await
                 .map_err(|e| HttpError::server_error(e.to_string()))?;
         }
@@ -91,34 +106,6 @@ pub async fn upload_resume(
             message: "Resume uploaded successfully".to_string(),
             status: "success",
         }))
-}
-
-pub async fn post_resume(
-    Path(user_id): Path<Uuid>,
-    Extension(app_state): Extension<Arc<AppState>>,
-    Extension(user): Extension<JWTAuthMiddleware>,
-    Json(body): Json<ResumeUploadDto>,
-) -> Result<impl IntoResponse, HttpError> {
-    if user.user.id != user_id {
-        return Err(HttpError::unauthorized(ErrorMessage::InvalidToken.to_string()));
-    }
-
-    body.validate()
-        .map_err(|e| HttpError::bad_request(e.to_string()))?;
-
-    let user = &user.user;
-    let user_id = Uuid::parse_str(&user.id.to_string()).unwrap();
-
-    let _result = app_state
-        .db_client
-        .save_resume(user_id, &body.file_path, body.analysis_result)
-        .await
-        .map_err(|e| HttpError::server_error(e.to_string()))?;
-
-    return Ok(Json(Response {
-        message: "Resume uploaded successfully".to_string(),
-        status: "success",
-    }));
 }
 
 pub async fn get_users(
