@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, user_id, file_path, analysis_result, uploaded_at\n            FROM resumes\n            WHERE user_id = $1\n            ORDER BY uploaded_at DESC\n            LIMIT $2 OFFSET $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "file_path",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "analysis_result",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "88dd695e504768a3cab2912b7751389d2390f8a422a5c9c185fd7015b3e5fe7b"
+}

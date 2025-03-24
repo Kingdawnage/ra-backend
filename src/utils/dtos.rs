@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
-use crate::models::users::{User, UserRole};
+use crate::models::{resume::Resume, users::{User, UserRole}};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
 pub struct RegisterUserDto {
@@ -85,6 +85,49 @@ pub struct UserData {
 pub struct UserResponseDto {
     pub status: String,
     pub data: UserData,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResumeData {
+    pub resume: FilterResumeDto,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResumeResponseDto {
+    pub status: String,
+    pub data: ResumeData,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FilterResumeDto {
+    pub id: String,
+    pub user_id: String,
+    pub file_path: String,
+    pub analysis_result: Option<serde_json::Value>,
+    pub uploaded_at: DateTime<Utc>,
+}
+
+impl FilterResumeDto {
+    pub fn filter_resume(resume: &Resume) -> Self {
+        FilterResumeDto {
+            id: resume.id.to_string(),
+            user_id: resume.user_id.to_string(),
+            file_path: resume.file_path.to_owned(),
+            analysis_result: resume.analysis_result.clone(),
+            uploaded_at: resume.uploaded_at.unwrap(),
+        }
+    }
+
+    pub fn filter_resumes(resumes: &[Resume]) -> Vec<Self> {
+        resumes.iter().map(FilterResumeDto::filter_resume).collect()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResumeListResponseDto {
+    pub status: String,
+    pub resumes: Vec<FilterResumeDto>,
+    pub results: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

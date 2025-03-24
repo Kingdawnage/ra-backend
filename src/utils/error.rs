@@ -21,13 +21,14 @@ pub enum ErrorMessage {
     ExceededMaxPassowrdLength(usize),
     HashingError,
     InvalidToken,
-    // ServerError,
+    ServerError,
     WrongCredentials,
     EmailExist,
     UserNotFound,
     TokenNotProvided,
     PermissionDenied,
     UserNotAuthorized,
+    ResumeNotFound,
 }
 
 impl ToString for ErrorMessage {
@@ -45,13 +46,14 @@ impl ErrorMessage {
             }
             ErrorMessage::HashingError => "Error hashing password".to_string(),
             ErrorMessage::InvalidToken => "Invalid token".to_string(),
-            // ErrorMessage::ServerError => "Internal server error".to_string(),
+            ErrorMessage::ServerError => "Internal server error".to_string(),
             ErrorMessage::WrongCredentials => "Wrong credentials".to_string(),
             ErrorMessage::EmailExist => "Email already exist".to_string(),
             ErrorMessage::UserNotFound => "User not found".to_string(),
             ErrorMessage::TokenNotProvided => "Token not provided".to_string(),
             ErrorMessage::PermissionDenied => "Permission denied".to_string(),
             ErrorMessage::UserNotAuthorized => "User not authorized".to_string(),
+            ErrorMessage::ResumeNotFound => "Resume not found".to_string(),
         }
     }
 }

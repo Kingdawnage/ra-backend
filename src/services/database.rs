@@ -68,6 +68,26 @@ pub trait UserActions {
         file_path: T,
         analysis_result: Option<serde_json::Value>,
     ) -> Result<Resume, sqlx::Error>;
+
+    async fn get_resume(
+        &self,
+        user_id: Option<Uuid>,
+        resume_id: Option<Uuid>,
+    ) -> Result<Option<Resume>, sqlx::Error>;
+
+    async fn delete_resume(
+        &self,
+        user_id: Option<Uuid>,
+        resume_id: Option<Uuid>,
+    ) -> Result<(), sqlx::Error>;
+
+    async fn get_resumes(
+        &self,
+        user_id: Uuid,
+        page: u32,
+        limit: usize,
+    ) -> Result<Vec<Resume>, sqlx::Error>;
+
 }
 
 #[async_trait]
@@ -92,6 +112,78 @@ impl UserActions for DBClient {
         .fetch_one(&self.pool)
         .await?;
         Ok(resume)
+    }
+
+    async fn get_resume(
+        &self,
+        user_id: Option<Uuid>,
+        resume_id: Option<Uuid>,
+    ) -> Result<Option<Resume>, sqlx::Error> {
+        if let (Some(user_id), Some(resume_id)) = (user_id, resume_id) {
+            let resume = sqlx::query_as!(
+                Resume,
+                r#"
+                SELECT id, user_id, file_path, analysis_result, uploaded_at
+                FROM resumes
+                WHERE id = $1 AND user_id = $2
+                "#,
+                resume_id,
+                user_id
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+            
+            Ok(resume)
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn delete_resume(
+        &self,
+        user_id: Option<Uuid>,
+        resume_id: Option<Uuid>
+    ) -> Result<(), sqlx::Error> {
+        if let (Some(user_id), Some(resume_id)) = (user_id, resume_id) {
+            let _ = sqlx::query!(
+                r#"
+                DELETE FROM resumes
+                WHERE id = $1 AND user_id = $2
+                "#,
+                resume_id,
+                user_id
+            )
+            .execute(&self.pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    async fn get_resumes(
+        &self,
+        user_id: Uuid,
+        page: u32,
+        limit: usize,
+    ) -> Result<Vec<Resume>, sqlx::Error> {
+        let offset = (page - 1) * limit as u32;
+
+        let resumes = sqlx::query_as!(
+            Resume,
+            r#"
+            SELECT id, user_id, file_path, analysis_result, uploaded_at
+            FROM resumes
+            WHERE user_id = $1
+            ORDER BY uploaded_at DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            user_id,
+            limit as i64,
+            offset as i64
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(resumes)
     }
 
     async fn get_user(

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM resumes\n                WHERE id = $1 AND user_id = $2\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "29de6f964baea3f0b45d69fcdeac9fab4ac5c754420c2ddc75ef87dc9b6fb3bb"
+}

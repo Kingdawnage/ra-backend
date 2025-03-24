@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO resumes (user_id, file_path, analysis_result)\n            VALUES ($1, $2, $3::jsonb)\n            RETURNING id, user_id, file_path, analysis_result, uploaded_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "file_path",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "analysis_result",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c2d8b9b4cf5cb4db6b2a432f6a559d61cbb7f086f6487926cabfbb7efb904598"
+}
