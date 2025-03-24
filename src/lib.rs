@@ -69,9 +69,9 @@ pub async fn run()
         .route("/", get(|| async {Json("Hello, World!")}))
         .layer(cors.clone());
 
-    println!("Server running on 0.0.0.0:{}", config.port);
+    println!("Server running on http://0.0.0.0:{}", config.port);
 
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", config.port))
+    let listener = TcpListener::bind(format!("http://0.0.0.0:{}", config.port))
         .await
         .unwrap();
 
