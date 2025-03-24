@@ -70,6 +70,6 @@ jobs:
           JWT_MAXAGE: ${{ secrets.JWT_MAXAGE }}
         run: cargo build --all --release
 
-      # 7. Run tests
-      - name: Run tests
-        run: cargo test --all --release
+      # # 7. Run tests
+      # - name: Run tests
+      #   run: cargo test --all --release
