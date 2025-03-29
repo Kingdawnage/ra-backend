@@ -10,6 +10,7 @@ pub async fn call_nlp_service(
     file_path: &str,
     file_name: &str,
 ) -> Result<Value, HttpError>{
+    println!("Reading file from path: {}", file_path);
     let file_bytes = fs::read(file_path)
         .map_err(|e| HttpError::server_error(e.to_string()))?;
 
@@ -20,8 +21,11 @@ pub async fn call_nlp_service(
         .file_name(file_name.to_string()),
     );
 
+    println!("Sending request to NLP service at http://host.docker.internal:8000/analyze_resume/");
     let response = http_client
-        .post("http://localhost:8000/analyze_resume/")
+        .post("http://host.docker.internal:8000/analyze_resume/")
+        // Uncomment when running locally
+        // .post("http://host.docker.internal:8000/analyze_resume/")
         .multipart(form)
         .send()
         .await
@@ -30,5 +34,6 @@ pub async fn call_nlp_service(
     let json: Value = response.json().await
         .map_err(|e| HttpError::server_error(e.to_string()))?;
     
+    println!("Successfully parsed response");
     Ok(json)
 }

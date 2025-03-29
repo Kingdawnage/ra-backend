@@ -6,24 +6,20 @@ use tokio::fs;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::{services::{database::UserActions, middleware::JWTAuthMiddleware, nlp::call_nlp_service}, utils::{dtos::{FilterResumeDto, RequestQueryDto, Response, ResumeData, ResumeListResponseDto, ResumeResponseDto}, error::{ErrorMessage, HttpError}}, AppState};
+use crate::{services::{database::UserActions, middleware::JWTAuthMiddleware, nlp::call_nlp_service}, utils::{dtos::{FilterResumeDto, RequestQueryDto, Response, ResumeData, ResumeListResponseDto, ResumeResponseDto}, error::HttpError}, AppState};
 
 pub fn resume_routes() -> Router {
     Router::new()
-        .route("/{user_id}/resume", post(upload_resume))
-        .route("/{user_id}/resume/{resume_id}", get(get_resume).delete(delete_resume))
-        .route("/{user_id}/resumes", get(get_resumes))
+        .route("/resume", post(upload_resume))
+        .route("/resume/{resume_id}", get(get_resume).delete(delete_resume))
+        .route("/resumes", get(get_resumes))
 }
 
 pub async fn upload_resume(
-    Path(user_id): Path<Uuid>,
     Extension(app_state): Extension<Arc<AppState>>,
     Extension(user): Extension<JWTAuthMiddleware>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, HttpError> {
-    if user.user.id != user_id {
-        return Err(HttpError::unauthorized(ErrorMessage::InvalidToken.to_string()));
-    }
     let upload_dir = "./uploads/temp";
     fs::create_dir_all(upload_dir).await.map_err(|e| HttpError::server_error(e.to_string()))?;
 
@@ -81,15 +77,12 @@ pub async fn upload_resume(
 }
 
 pub async fn delete_resume(
-    Path((user_id, resume_id)): Path<(Uuid, Uuid)>,
+    Path(resume_id): Path<Uuid>,
     Extension(app_state): Extension<Arc<AppState>>,
     Extension(user): Extension<JWTAuthMiddleware>,
 ) -> Result<impl IntoResponse, HttpError> {
-    if user.user.id != user_id {
-        return Err(HttpError::unauthorized(ErrorMessage::PermissionDenied.to_string()));
-    }
-
     let user_id = &user.user.id;
+
     let resume = app_state
         .db_client
         .get_resume(Some(*user_id), Some(resume_id))
@@ -115,14 +108,10 @@ pub async fn delete_resume(
 }
 
 pub async fn get_resume(
-    Path((user_id, resume_id)): Path<(Uuid, Uuid)>,
+    Path(resume_id): Path<Uuid>,
     Extension(app_state): Extension<Arc<AppState>>,
     Extension(user): Extension<JWTAuthMiddleware>,
 ) -> Result<impl IntoResponse, HttpError> {
-    if user.user.id != user_id {
-        return Err(HttpError::unauthorized(ErrorMessage::PermissionDenied.to_string()));
-    }
-
     let user_id = &user.user.id;
 
     let resume = app_state
@@ -142,14 +131,9 @@ pub async fn get_resume(
 
 pub async fn get_resumes(
     Query(query_params): Query<RequestQueryDto>,
-    Path(user_id): Path<Uuid>,
     Extension(app_state): Extension<Arc<AppState>>,
     Extension(user): Extension<JWTAuthMiddleware>,
 ) -> Result<impl IntoResponse, HttpError> {
-    if user.user.id != user_id {
-        return Err(HttpError::unauthorized(ErrorMessage::PermissionDenied.to_string()));
-    }
-
     query_params
         .validate()
         .map_err(|e| HttpError::bad_request(e.to_string()))?;
@@ -161,7 +145,7 @@ pub async fn get_resumes(
 
     let resumes = app_state
         .db_client
-        .get_resumes(user_id.clone(), page as u32, limit)
+        .get_resumes(*user_id, page as u32, limit)
         .await
         .map_err(|e| HttpError::server_error(e.to_string()))?;
 
