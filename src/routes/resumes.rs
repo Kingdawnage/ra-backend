@@ -25,6 +25,7 @@ pub async fn upload_resume(
 
     let user_id = &user.user.id;
     let mut analysis_result = None;
+    let mut saved_resume = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -63,17 +64,23 @@ pub async fn upload_resume(
                 }
             }
 
-            let _result = app_state
+            saved_resume = Some(app_state
                 .db_client
                 .save_resume(*user_id, &file_path, analysis_result.clone())
                 .await
-                .map_err(|e| HttpError::server_error(e.to_string()))?;
+                .map_err(|e| HttpError::server_error(e.to_string()))?);
         }
 
-        Ok(Json(Response {
-            message: "Resume uploaded successfully".to_string(),
-            status: "success",
-        }))
+        let resume = saved_resume.ok_or_else(|| HttpError::bad_request("No file was uploaded".to_string()))?;
+        
+        let response = ResumeResponseDto {
+            status: "success".to_string(),
+            data: ResumeData {
+                resume: FilterResumeDto::filter_resume(&resume)
+            }
+        };
+
+        Ok(Json(response))
 }
 
 pub async fn delete_resume(
