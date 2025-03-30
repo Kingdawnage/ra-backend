@@ -1,5 +1,4 @@
-
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use api::create_api;
 use axum::{http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method}, routing::get, Json};
@@ -51,8 +50,11 @@ pub async fn run()
         }
     };
 
+    let frontend_url = env::var("FRONTEND_URL").unwrap_or("http://localhost:3000".to_string());
+    let _allowed_origins = frontend_url.split(",").collect::<Vec<_>>();
+    
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin(frontend_url.parse::<HeaderValue>().unwrap())
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::PUT]);
@@ -67,6 +69,7 @@ pub async fn run()
 
     let app = create_api(Arc::new(app_state.clone()))
         .route("/", get(|| async {Json("Hello, World!")}))
+        .route("/health", get(|| async {Json("OK")}))
         .layer(cors.clone());
 
     println!("Server is running on 0.0.0.0:{}", config.port);
@@ -77,5 +80,4 @@ pub async fn run()
 
     println!("Listening on: {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
-
 }
